@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 import './App.css';
 import Todoinput from './components/Todoinput';
 import TodoList from './components/TodoList';
@@ -8,29 +8,63 @@ function App() {
   const [todos, setTodos] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:3001/todos')
-      .then((db) => db.json())
-      .then((data) => setTodos(data));
+    axios
+      .get('http://localhost:3001/todos')
+      .then((response) => {
+        setTodos(response.data);
+        console.log(response.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching data:', error);
+      });
   }, []);
 
   const addTodo = (newTodo) => {
-    const updatedTodos = [
-      ...todos,
-      { id: uuidv4(), title: newTodo, completed: false },
-    ];
-    setTodos(updatedTodos);
+    const todo = { title: newTodo, completed: false };
+    axios
+      .post('http://localhost:3001/todos', todo)
+      .then((response) => {
+        setTodos([...todos, response.data]);
+      })
+      .catch((error) => {
+        console.error('Error adding todo:', error);
+      });
   };
 
   const toggleTodo = (id) => {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
+    const todo = todos.find((todo) => todo.id === id);
+    axios
+      .put(`http://localhost:3001/todos/${id}`, {
+        completed: !todo.completed,
+      })
+      .then((response) => {
+        setTodos(todos.map((todo) => (todo.id === id ? response.data : todo)));
+      })
+      .catch((error) => {
+        console.error('Error toggling todo:', error);
+      });
   };
 
   const deleteTodo = (id) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
+    axios
+      .delete(`http://localhost:3001/todos/${id}`)
+      .then(() => {
+        setTodos(todos.filter((todo) => todo.id !== id));
+      })
+      .catch((error) => {
+        console.error('Error deleting todo:', error);
+      });
+  };
+
+  const updateTodo = (id, newTitle) => {
+    axios
+      .put(`http://localhost:3001/todos/${id}`, { title: newTitle })
+      .then((response) => {
+        setTodos(todos.map((todo) => (todo.id === id ? response.data : todo)));
+      })
+      .catch((error) => {
+        console.error('Error updating todo:', error);
+      });
   };
 
   return (
@@ -46,6 +80,7 @@ function App() {
           todos={todos}
           toggleTodo={toggleTodo}
           deleteTodo={deleteTodo}
+          updateTodo={updateTodo}
         />
       </div>
     </div>
